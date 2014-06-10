@@ -1,0 +1,5 @@
+#!/usr/bin/ruby
+
+require 'wmake'
+
+WMake.hello

@@ -5,7 +5,11 @@ Gem::Specification.new do |s|
   s.description = "WPS Make system"
   s.authors = ["Chizhong Jin"]
   s.email = "jinchizhong@kingsoft.com"
-  s.files = ["lib/wmake.rb"]
+  s.files = [
+    "bin/wmake",
+    "lib/wmake.rb"
+    ]
+  s.executables << 'wmake'
   s.homepage = 'http://www.wps.com'
   s.license = 'BSD'
 end
