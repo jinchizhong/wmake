@@ -14,3 +14,4 @@ EOF
 end
 
 require 'wmake/front'
+require 'wmake/project'

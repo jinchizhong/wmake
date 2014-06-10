@@ -9,6 +9,7 @@ Gem::Specification.new do |s|
     "bin/wmake",
     "lib/wmake.rb",
     "lib/wmake/front.rb",
+    "lib/wmake/project.rb",
     ]
   s.executables << 'wmake'
   s.homepage = 'http://www.wps.com'
