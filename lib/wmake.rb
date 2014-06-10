@@ -1,5 +1,5 @@
 module WMake
-  def hello
+  def self.hello
     puts "Hello WMake"
   end
 end
