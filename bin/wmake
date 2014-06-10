@@ -25,3 +25,4 @@ die "WMake file not exists." unless File.exists? wmake_file
 ARGV.shift
 
 WMake::FRONT.load wmake_file
+WMake::FRONT.configure
