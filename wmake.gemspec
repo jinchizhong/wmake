@@ -7,7 +7,8 @@ Gem::Specification.new do |s|
   s.email = "jinchizhong@kingsoft.com"
   s.files = [
     "bin/wmake",
-    "lib/wmake.rb"
+    "lib/wmake.rb",
+    "lib/wmake/front.rb",
     ]
   s.executables << 'wmake'
   s.homepage = 'http://www.wps.com'

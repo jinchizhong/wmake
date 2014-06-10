@@ -1,3 +1,5 @@
-project "hello", :exe {
+puts "Hello"
+
+project("hello", :exe){
   source "hello.cpp"
 }

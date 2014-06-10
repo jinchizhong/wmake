@@ -2,4 +2,26 @@
 
 require 'wmake'
 
-WMake.hello
+if ARGV.length == 0 or ARGV[0] =~ /^-/ or ARGV.include? "-h" or ARGV.include? "--help"
+  WMake.help
+end
+
+wmake_file = nil
+if File.directory? ARGV[0]
+  if File.exists? ARGV[0] + "/wmake.cache.yaml"
+    raise 'TODO'  # TODO
+  else
+    wmakes = Dir.new(ARGV[0]).grep /\.wmake$/
+    WMake.die "No wmake file in special directory." if wmakes.length == 0
+    WMake.die "More then one wmake file in special dir, using wmake path_to_wmake_file instand." if wmakes.length > 1
+    wmake_file = wmakes[0]
+  end
+elsif ARGV[0] =~ /\.wmake/
+  wmake_file = ARGV[0]
+else
+  WMake.help
+end
+die "WMake file not exists." unless File.exists? wmake_file
+ARGV.shift
+
+WMake::FRONT.load wmake_file
