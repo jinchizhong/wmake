@@ -10,7 +10,9 @@ Gem::Specification.new do |s|
     "lib/wmake.rb",
     "lib/wmake/front.rb",
     "lib/wmake/project.rb",
-    ]
+    "lib/wmake/generator/makefile.rb",
+    "lib/wmake/platform/linux.rb",
+  ]
   s.executables << 'wmake'
   s.homepage = 'http://www.wps.com'
   s.license = 'BSD'

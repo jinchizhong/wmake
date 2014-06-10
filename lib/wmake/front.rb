@@ -12,11 +12,6 @@ module WMake
     def project name, type, &block
       WMake::Project.new name, type, &block
     end
-    def configure
-      WMake::PROJECTS.each_value do |proj|
-        proj.configure
-      end
-    end
   end
   FRONT = Front.new
 end

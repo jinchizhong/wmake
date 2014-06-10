@@ -6,23 +6,43 @@ if ARGV.length == 0 or ARGV[0] =~ /^-/ or ARGV.include? "-h" or ARGV.include? "-
   WMake.help
 end
 
+# ensure wmake_file, source_root and binary_root
 wmake_file = nil
+source_root = nil
+binary_root = nil
 if File.directory? ARGV[0]
   if File.exists? ARGV[0] + "/wmake.cache.yaml"
-    raise 'TODO'  # TODO
+    WMake::CACHE.load ARGV[0] + "/wmake.cache.yaml"
+    source_root = WMake::CACHE[:source_root]
+    binary_root = WMake::CACHE[:binary_root]
+    wmake_file = WMake::CACHE[:main_wmake]
   else
     wmakes = Dir.new(ARGV[0]).grep /\.wmake$/
     WMake.die "No wmake file in special directory." if wmakes.length == 0
     WMake.die "More then one wmake file in special dir, using wmake path_to_wmake_file instand." if wmakes.length > 1
     wmake_file = wmakes[0]
+    source_root = ARGV[0]
+    binary_root = Dir.pwd
   end
 elsif ARGV[0] =~ /\.wmake/
   wmake_file = ARGV[0]
+  source_root = File.dirname wmake_file
+  binary_root = Dir.pwd
 else
   WMake.help
 end
 die "WMake file not exists." unless File.exists? wmake_file
 ARGV.shift
 
-WMake::FRONT.load wmake_file
-WMake::FRONT.configure
+# working...
+WMake.load_generator "makefile"
+WMake.load_platform "linux"
+
+WMake.init_wmake source_root, binary_root, wmake_file
+
+WMake.load wmake_file
+WMake.configure
+
+WMake.gen
+
+WMake.save_cache
