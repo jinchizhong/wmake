@@ -99,13 +99,19 @@ module WMake
       lines = []
       lines << "all: #{def_prjs.join ' '}"
       lines << ""
-      lines << ".PHONY: #{all_prjs.collect{|x| "#{x} #{x}/clean"}.join ' '}"
+      lines << ".PHONY: #{all_prjs.collect{|x| "#{x} #{x}/clean #{x}/build"}.join ' '}"
       lines << ""
       lines << "clean: #{def_prjs.collect{|x| x + "/clean"}.join ' '}"
       lines << ""
       PROJECTS.each_value do |prj|
         lines << "#{prj.name}: #{prj.depends.join ' '}" unless prj.depends.empty?
         lines << "#{prj.name}: #{prj.products.join ' '}"
+        lines << ""
+        prj.products.each do |product|
+          lines << "#{product}: #{prj.name}/build"
+          lines << ""
+        end
+        lines << "#{prj.name}/build:"
         lines << "\tcd #{prj.name} && make"
         lines << ""
         lines << "#{prj.name}/clean: #{prj.depends.collect{|x| x + "/clean"}.join ' '}"
