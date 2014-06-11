@@ -42,6 +42,9 @@ module WMake
   def self.load_platform plat_name
     require 'wmake/platform/' + plat_name
   end
+  def self.load_toolchains toolchains_name
+    require 'wmake/toolchains/' + toolchains_name
+  end
   def self.init_wmake source_root, binary_root, wmake_file
     CACHE[:source_root] = OPTIONS.source_root = File.expand_path(source_root)
     CACHE[:binary_root] = OPTIONS.binary_root = File.expand_path(binary_root)
