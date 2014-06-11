@@ -1,4 +1,6 @@
 module WMake
+  Step = Struct.new :from, :to, :compiler
+
   COMPILERS = []
 
   class Compiler
@@ -6,22 +8,16 @@ module WMake
       # [in]  files in project
       # [out] files this compiler need to deal
       # You have to reimplement this method for a new compiler
-      return []
+      raise 'You have to implement this method'
     end
-    def group proj, files
+    def steps proj, files
       # [in]  files need to compiler
-      # [out] groups for compiler unit   {in_files => out_files, ...} in_files and out_files can be String or Array
+      # [out] groups for compiler unit   [Step, ...]
       # You have to reimplement this method for a new compiler
+      raise 'You have to implement this method'
     end
-    def transfer proj, files
-      # [in]  input files
-      # [out] generated files
-      # In most cases, you do not need to reimplement this function
-      out = []
-      group(proj, files).each do |f, t|
-        out +=  t
-      end
-      return out
+    def command_line proj, step
+      raise 'You have to implement this method'
     end
   end
 end

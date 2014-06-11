@@ -1,4 +1,7 @@
 require 'yaml'
+require 'wmake/core'
+require 'wmake/front'
+require 'wmake/project'
 
 module WMake
   class Cache 
@@ -76,5 +79,3 @@ module WMake
   end
 end
 
-require 'wmake/front'
-require 'wmake/project'

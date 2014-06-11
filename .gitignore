@@ -2,6 +2,7 @@
 *.swp
 *~
 *.tmp
+*.o
 wmake.cache.yaml
 wmake.projs
 wmake.output

@@ -51,48 +51,35 @@ module WMake
       CREF.get_refs fpath, []
     end
     def intermediate_filename str
-      "intermediate/" + str.gsub("..", "__") + ".o"
+      "intermediate/" + str.gsub("..", "__")
+    end
+    def get_file_location proj, f
+      return f if f =~ /^\//
+      return proj.dir + "/" + f if proj.files.include?(f)
+      OPTIONS.projs_dir + "/" + proj.name + "/" + intermediate_filename(f)
     end
     def gen_project proj
       src_dir = proj.dir
       bin_dir = OPTIONS.projs_dir + "/" + proj.name
       makefile_file = bin_dir + "/Makefile"
       products = proj.products
-      product = products.first
       FileUtils.mkdir_p bin_dir
 
-      obj_files = []
-
       lines = []
-      lines << "all: #{products.join ' '}"
+      steps = WMake.gen_steps proj
+      lines << ".PHONY: all"
       lines << ""
-      proj.files.each do |fpath|
-        in_file = File.expand_path fpath, src_dir
-        deps = get_file_depends in_file
-        out_file = intermediate_filename fpath
-        lines << "#{out_file}: mkdirs"
-        deps.each do |dep|
-          lines << "#{out_file}: #{File.expand_path dep, src_dir}"
-        end
-        lines << "\tgcc -c #{in_file} -o #{out_file}"
+      lines << "all: #{proj.name}"
+      lines << ""
+      lines << "#{proj.name}: #{products.join ' '}"
+      lines << ""
+      steps.each do |step|
+        next if step.from.empty? or step.to.empty?
+        lines << "#{step.to.collect{|x| get_file_location(proj, x)}.join ' '}: #{step.from.collect{|x| get_file_location(proj, x)}.join ' '}"
+        lines << "\t#{step.compiler.command_line proj, step}"
         lines << ""
-        obj_files << out_file
       end
-      lines << "mkdirs:"
-      (obj_files + products).collect{|f| File.dirname f}.uniq.each do |dir|
-        lines << "\tmkdir -p #{dir}"
-      end
-      lines << ""
-      obj_files.each do |obj|
-        lines << "#{product}: #{obj}"
-      end
-      lines << "\tgcc #{obj_files.join ' '} -o #{product}"
-      lines << ""
-      lines << "clean:"
-      (obj_files + products).each do |f|
-        lines << "\trm -rfv #{f}"
-      end
-      lines << ""
+
       try_write makefile_file, lines.join("\n")
     end
     def gen_main_makefile

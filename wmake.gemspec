@@ -8,11 +8,16 @@ Gem::Specification.new do |s|
   s.files = [
     "bin/wmake",
     "lib/wmake.rb",
+    "lib/wmake/core.rb",
     "lib/wmake/front.rb",
     "lib/wmake/project.rb",
+    "lib/wmake/compiler.rb",
     "lib/wmake/generator/makefile.rb",
     "lib/wmake/platform/linux.rb",
     "lib/wmake/tools/cref.rb",
+    "lib/wmake/toolchains/gcc.rb",
+    "lib/wmake/compiler/gcc.rb",
+    "lib/wmake/compiler/ld.rb",
   ]
   s.executables << 'wmake'
   s.homepage = 'http://www.wps.com'
