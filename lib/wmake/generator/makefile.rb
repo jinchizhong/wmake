@@ -79,7 +79,7 @@ module WMake
         lines << ""
         obj_files << out_file
       end
-      lines << "mkdirs: "
+      lines << "mkdirs:"
       (obj_files + products).collect{|f| File.dirname f}.uniq.each do |dir|
         lines << "\tmkdir -p #{dir}"
       end
@@ -88,6 +88,11 @@ module WMake
         lines << "#{product}: #{obj}"
       end
       lines << "\tgcc #{obj_files.join ' '} -o #{product}"
+      lines << ""
+      lines << "clean:"
+      (obj_files + products).each do |f|
+        lines << "\trm -rfv #{f}"
+      end
       lines << ""
       try_write makefile_file, lines.join("\n")
     end
