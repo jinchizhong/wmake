@@ -11,10 +11,14 @@ module WMake
       @block = block
       @wmake = FRONT.loading_stack.last
       @files = []
+      @depends = []
+      @exclude_by_default = false
     end
     attr_reader :name
     attr_reader :type
     attr_reader :files
+    attr_reader :depends
+    attr_reader :exclude_by_default
     def configure
       instance_eval &@block
     end

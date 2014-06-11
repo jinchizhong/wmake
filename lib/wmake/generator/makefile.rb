@@ -24,6 +24,8 @@ module WMake
       PROJECTS.each_value do |proj|
         gen_project proj
       end
+      gen_main_makefile
+      gen_root_makefile
     end
     def gen_pre_check
       prj_dir = OPTIONS.projs_dir + "/pre_check"
@@ -87,7 +89,56 @@ module WMake
       end
       lines << "\tgcc #{obj_files.join ' '} -o #{product}"
       lines << ""
+      try_write makefile_file, lines.join("\n")
+    end
+    def gen_main_makefile
+      makefile_file = OPTIONS.projs_dir + "/Makefile"
+      def_prjs = PROJECTS.values.delete_if {|prj| prj.exclude_by_default}.collect{|prj| prj.name}
+      all_prjs = PROJECTS.keys
+      
+      lines = []
+      lines << "all: #{def_prjs.join ' '}"
       lines << ""
+      lines << ".PHONY: #{all_prjs.collect{|x| "#{x} #{x}/clean"}.join ' '}"
+      lines << ""
+      lines << "clean: #{def_prjs.collect{|x| x + "/clean"}.join ' '}"
+      lines << ""
+      PROJECTS.each_value do |prj|
+        lines << "#{prj.name}: #{prj.depends.join ' '}" unless prj.depends.empty?
+        lines << "#{prj.name}: #{prj.products.join ' '}"
+        lines << "\tcd #{prj.name} && make"
+        lines << ""
+        lines << "#{prj.name}/clean: #{prj.depends.collect{|x| x + "/clean"}.join ' '}"
+        lines << "\tcd #{prj.name} && make clean"
+        lines << ""
+      end
+
+      try_write makefile_file, lines.join("\n")
+    end
+    def gen_root_makefile
+      makefile_file = OPTIONS.binary_root + "/Makefile"
+      prjs_dir = OPTIONS.projs_dir
+
+      targets = ["all", "clean"]
+      PROJECTS.each_key do |prj|
+        targets << prj << "#{prj}/clean"
+      end
+      
+      lines = []
+      targets.each do |target|
+        lines << "#{target}: "
+        lines << "\tcd \"#{prjs_dir}\" && make #{target}"
+        lines << ""
+      end
+      lines << "dist-clean: "
+      lines << "\trm -rf \"#{OPTIONS.projs_dir}\""
+      lines << "\trm -rf \"#{OPTIONS.cache_file}\""
+      lines << "\trm -rf Makefile"
+      lines << ""
+      lines << "clean-all: dist-clean"
+      lines << "\trm -rf \"#{OPTIONS.output_dir}\""
+      lines << ""
+
       try_write makefile_file, lines.join("\n")
     end
   end
