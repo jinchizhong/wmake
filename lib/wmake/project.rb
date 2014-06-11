@@ -24,5 +24,11 @@ module WMake
     def pre_check_files
       [@wmake]
     end
+    def products
+      PLATFORM.products self
+    end
+    def dir
+      File.dirname @wmake
+    end
   end
 end

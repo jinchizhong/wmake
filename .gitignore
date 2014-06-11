@@ -4,3 +4,4 @@
 *.tmp
 wmake.cache.yaml
 wmake.projs
+wmake.output

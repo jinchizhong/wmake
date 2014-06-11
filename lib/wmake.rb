@@ -30,6 +30,9 @@ module WMake
     def projs_dir
       binary_root + "/wmake.projs"
     end
+    def output_dir
+      binary_root + "/wmake.output"
+    end
   end
   OPTIONS = Options.new
 
