@@ -12,6 +12,7 @@ Gem::Specification.new do |s|
     "lib/wmake/project.rb",
     "lib/wmake/generator/makefile.rb",
     "lib/wmake/platform/linux.rb",
+    "lib/wmake/tools/cref.rb",
   ]
   s.executables << 'wmake'
   s.homepage = 'http://www.wps.com'

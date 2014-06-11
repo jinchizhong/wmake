@@ -1,4 +1,5 @@
 require 'fileutils'
+require 'wmake/tools/cref'
 
 module WMake
   class MakefileGen
@@ -47,8 +48,7 @@ module WMake
       touch stamp_file
     end
     def get_file_depends fpath
-      # TODO
-      []
+      CREF.get_refs fpath, []
     end
     def intermediate_filename str
       "intermediate/" + str.gsub("..", "__") + ".o"
@@ -67,14 +67,13 @@ module WMake
       lines << "all: #{products.join ' '}"
       lines << ""
       proj.files.each do |fpath|
-        # TODO
-        deps = get_file_depends fpath
         in_file = File.expand_path fpath, src_dir
+        deps = get_file_depends in_file
         out_file = intermediate_filename fpath
+        lines << "#{out_file}: mkdirs"
         deps.each do |dep|
           lines << "#{out_file}: #{File.expand_path dep, src_dir}"
         end
-        lines << "#{out_file}: mkdirs #{in_file}"
         lines << "\tgcc -c #{in_file} -o #{out_file}"
         lines << ""
         obj_files << out_file
