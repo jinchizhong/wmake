@@ -5,3 +5,4 @@
 wmake.cache.yaml
 wmake.projs
 wmake.output
+/test/**/Makefile
