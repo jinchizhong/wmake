@@ -1,9 +1,49 @@
 require 'yaml'
-require 'wmake/core'
-require 'wmake/front'
+require 'wmake/algorithm'
 require 'wmake/project'
 
 module WMake
+  module Core
+    def load_generator gen_name
+      require 'wmake/generator/' + gen_name
+    end
+    def load_platform plat_name
+      require 'wmake/platform/' + plat_name
+    end
+    def load_toolchains toolchains_name
+      require 'wmake/toolchains/' + toolchains_name
+    end
+    def init_wmake source_root, binary_root, wmake_file
+      CACHE[:source_root] = OPTIONS.source_root = File.expand_path(source_root)
+      CACHE[:binary_root] = OPTIONS.binary_root = File.expand_path(binary_root)
+      CACHE[:main_wmake] = OPTIONS.main_wmake = File.expand_path(wmake_file)
+      OPTIONS.cache_file = OPTIONS.binary_root + "/wmake.cache.yaml"
+    end
+    def load fpath
+      FRONT.load fpath
+    end
+    def configure
+      PROJECTS.each do |name, proj|
+        proj.configure
+      end
+    end
+    def gen
+      GENERATOR.gen
+    end
+    def save_cache
+      CACHE.save OPTIONS.cache_file
+    end
+
+    def help
+      puts "Usage: wmake <path_to_source_dir_or_binary_dir_or_wmake_file> [args...]"
+      exit 0
+    end
+    def die msg, code = 1
+      $stderr.puts msg
+      exit code
+    end
+  end
+  
   class Cache 
     def initialize 
       @cache = {}
@@ -23,7 +63,6 @@ module WMake
       @cache[k] = v
     end
   end
-  CACHE = Cache.new
 
   class Options
     attr_accessor :source_root
@@ -37,45 +76,99 @@ module WMake
       binary_root + "/wmake.output"
     end
   end
-  OPTIONS = Options.new
-
-  def self.load_generator gen_name
-    require 'wmake/generator/' + gen_name
-  end
-  def self.load_platform plat_name
-    require 'wmake/platform/' + plat_name
-  end
-  def self.load_toolchains toolchains_name
-    require 'wmake/toolchains/' + toolchains_name
-  end
-  def self.init_wmake source_root, binary_root, wmake_file
-    CACHE[:source_root] = OPTIONS.source_root = File.expand_path(source_root)
-    CACHE[:binary_root] = OPTIONS.binary_root = File.expand_path(binary_root)
-    CACHE[:main_wmake] = OPTIONS.main_wmake = File.expand_path(wmake_file)
-    OPTIONS.cache_file = OPTIONS.binary_root + "/wmake.cache.yaml"
-  end
-  def self.load fpath
-    FRONT.load fpath
-  end
-  def self.configure
-    PROJECTS.each do |name, proj|
-      proj.configure
+  
+  class ProjectLoader
+    def initialize
+      @loading_stack = []
+    end
+    attr_reader :loading_stack
+    def load fpath
+      @loading_stack << fpath
+      instance_eval File.read(fpath), fpath
+      @loading_stack.pop
+    end
+    def project name, type, &block
+      Project.new name, type, &block
     end
   end
-  def self.gen
-    GENERATOR.gen
+  
+  FileItem = Struct.new :project, :fpath, :type  # type => :source, :intermediate, :product
+  class FileItem
+    def source?
+      @type == :source
+    end
+    def intermediate?
+      @type == :intermediate
+    end
+    def product?
+      @type == :product?
+    end
   end
-  def self.save_cache
-    CACHE.save OPTIONS.cache_file
+  
+  Job = Struct.new :project, :inputs, :outputs, :compiler
+  class Job
+    def command_line
+      raise "todo"
+    end
+  end
+  
+  class Compiler
+    def initialize
+      # You have to change follow variants in inherted class
+      # or reimplement methods for advance
+      @exts = []
+      @compiler_mode = :one_by_one      # :one_by_one, :all_to_one
+      @output_extention = nil           # output extention
+    end
+    attr_accessor :exts
+    attr_accessor :compiler_mode
+    attr_accessor :output_name
+    def filter inputs
+      # default implement, you can reimplement it if necessary
+      # filter files by @exts
+      outputs = []
+      inputs.each do |item|
+        outputs << item if @exts.include?(File.extname item.fpath)
+      end
+      outputs
+    end
+    def jobs inputs
+      # default implement, you can reimplement it if necessary
+      jobs = []
+      if @compiler_mode == :one_by_one
+        inputs.each do |item|
+          output = FileItem.new(item.project, get_output_fpath(item), :intermediate)
+          jobs << Job.new(item.project, [item], [output], self)
+        end
+      elsif @compiler_mode == :all_to_one
+        if not inputs.empty?
+          output = FileItem.new(inputs.first.project, get_output_fpath(inputs.first), :intermediate)
+          jobs << Job.new(inputs.first.project, inputs, [output], self)
+        end
+      else
+        raise "Unknown compiler mode"
+      end
+    end
+    def get_output_fpath item
+      # default implement, you can reimplement it if necessary
+      if @compiler_mode == :one_by_one
+        return item.fpath + @output_extention
+      elsif @compiler_mode == :all_to_one
+        return item.project.name + @output_extention
+      else
+        raise "Unknown compiler mode"
+      end
+    end
+    def command_line
+      # no implement, you have to reimplement it
+      raise "You have to reimplement this method"
+    end
   end
 
-  def self.help
-    puts "Usage: wmake <path_to_source_dir_or_binary_dir_or_wmake_file> [args...]"
-    exit 0
-  end
-  def self.die msg, code = 1
-    $stderr.puts msg
-    exit code
-  end
+  include Core
+  include Algorithm
+  CACHE = Cache.new
+  OPTIONS = Options.new
+  PROJECT_LOADER = ProjectLoader.new
 end
 
