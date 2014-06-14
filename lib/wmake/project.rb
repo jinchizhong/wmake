@@ -30,7 +30,7 @@ module WMake
       [@wmake]
     end
     def products
-      ["bin/" + name]
+      ["bin/" + name + ".exe"]
     end
     def dir
       File.dirname @wmake

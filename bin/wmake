@@ -36,8 +36,8 @@ ARGV.shift
 
 # working...
 WMake.load_generator "makefile"
-WMake.load_platform "linux"
-WMake.load_toolchains "gcc"
+#WMake.load_toolchains "gcc"
+WMake.load_toolchains "msvc"
 
 WMake.init_wmake source_root, binary_root, wmake_file
 

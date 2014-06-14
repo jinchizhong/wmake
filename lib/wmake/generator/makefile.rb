@@ -112,12 +112,13 @@ module WMake
       lines << gen_target(".PHONY", ["all", "clean"] + all_prjs.collect{|x| [x, x + "/clean",  x + "/build"]}.flatten)
       lines << gen_target("all", def_prjs)
       lines << gen_target("clean", def_prjs.collect{|x| x + "/clean"})
+      lines << gen_target("pre_check", [], "cd pre_check && $(MAKE)")
       PROJECTS.each_value do |prj|
         products = all_product_fileitems prj
         lines << gen_target(prj.name, prj.depends + products)
         lines << gen_target(products, prj.name + "/build")
-        lines << gen_target(prj.name + "/build", [], "cd #{prj.name} && make")
-        lines << gen_target(prj.name + "/clean", [], "cd #{prj.name} && make clean")
+        lines << gen_target(prj.name + "/build", ["pre_check"], "cd #{prj.name} && $(MAKE)")
+        lines << gen_target(prj.name + "/clean", [], "cd #{prj.name} && $(MAKE) clean")
       end
 
       try_write makefile_file, lines.join("\n")
@@ -130,7 +131,7 @@ module WMake
       
       lines = []
       targets.each do |target|
-        lines << gen_target(target, [], "cd \"#{prjs_dir}\" && make #{target}")
+        lines << gen_target(target, [], "cd \"#{prjs_dir}\" && $(MAKE) #{target}")
       end
       lines << gen_target("dist-clean", [], ["rm -rf \"#{OPTIONS.projs_dir}\"", "rm -rf \"#{OPTIONS.cache_file}\"", "rm -rf Makefile"])
       lines << gen_target("clean-all", [], "rm -rf \"#{OPTIONS.output_dir}\"")
