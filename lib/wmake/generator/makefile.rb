@@ -32,15 +32,7 @@ module WMake
       targets = [targets] unless targets.is_a? Array
       targets.collect do |t|
         if t.is_a? FileItem
-          if t.source?
-            File.expand_path(t.fpath, t.project.dir)
-          elsif t.intermediate?
-            File.expand_path(t.fpath.gsub("..", "__"), OPTIONS.projs_dir + "/" + t.project.name + "/intermediate")
-          elsif t.product?
-            File.expand_path(t.fpath, OPTIONS.output_dir + "/")
-          else
-            raise "Unknown FileItem type " + t.type.to_s
-          end
+          t.absolute
         else
           t
         end
@@ -79,15 +71,29 @@ module WMake
       makefile_file = bin_dir + "/Makefile"
       FileUtils.mkdir_p bin_dir
 
-      lines = []
       jobs = WMake.gen_jobs proj
+      products = []
+      dirs_need_to_gen = []
       products = jobs.collect {|job| job.outputs.select{|item| item.product?}}.flatten
+      jobs.each do |job|
+        job.outputs.each do |item|
+          products << item if item.product?
+          dirs_need_to_gen << File.dirname(item.absolute) if item.type != :source
+        end
+      end
+      dirs_need_to_gen.uniq!
+
+      lines = []
       lines << gen_target(".PHONY", ["all", proj.name])
       lines << gen_target("all", proj.name)
+      dirs_need_to_gen.each do |dir|
+        lines << gen_target(dir, [], "mkdir -p \"#{dir}\"")
+      end
       lines << gen_target(proj.name, products)
       jobs.each do |job|
         next if job.inputs.empty? or job.outputs.empty?
-        lines << gen_target(job.outputs, job.inputs, "test")
+        dir_deps = job.outputs.collect{|item| File.dirname(item.absolute)}.uniq
+        lines << gen_target(job.outputs, dir_deps + job.inputs, job.command_line)
       end
 
       try_write makefile_file, lines.join("\n")

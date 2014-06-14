@@ -10,5 +10,8 @@ module WMake
     def get_output_fpath item
       return "bin/" + item.project.name
     end
+    def command_line job
+      "g++ #{job.inputs.join ' '} -o #{job.outputs.first}"
+    end
   end
 end

@@ -103,18 +103,30 @@ module WMake
     def product?
       (self.type == :product)
     end
+    def absolute
+      case type
+      when :source
+        File.expand_path(fpath, project.dir)
+      when :intermediate
+        File.expand_path(fpath.gsub("..", "__"), OPTIONS.projs_dir + "/" + project.name + "/intermediate")
+      when :product
+        File.expand_path(fpath, OPTIONS.output_dir + "/")
+      else
+        raise "Unknown FileItem type: #{type}"
+      end
+    end
     def inspect
       "{FileItem: project => #{project.name}, fpath => #{fpath}, type => #{type}}"
     end
     def to_s
-      inspect
+      absolute
     end
   end
   
   Job = Struct.new :project, :inputs, :outputs, :compiler
   class Job
     def command_line
-      raise "todo"
+      compiler.command_line self
     end
   end
   
@@ -168,7 +180,7 @@ module WMake
         raise "Unknown compiler mode"
       end
     end
-    def command_line
+    def command_line job
       # no implement, you have to reimplement it
       raise "You have to reimplement this method"
     end
