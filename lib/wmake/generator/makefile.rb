@@ -124,7 +124,7 @@ module WMake
       try_write makefile_file, lines.join("\n")
     end
     def gen_root_makefile
-      makefile_file = OPTIONS.binary_root + "/Makefile"
+      makefile_file = OPTIONS.build_root + "/Makefile"
       prjs_dir = OPTIONS.projs_dir
 
       targets = ["all", "clean"] + PROJECTS.keys.collect{|x| [x, x + "/clean"]}.flatten
@@ -134,7 +134,7 @@ module WMake
         lines << gen_target(target, [], "cd \"#{prjs_dir}\" && $(MAKE) #{target}")
       end
       lines << gen_target("dist-clean", [], ["rm -rf \"#{OPTIONS.projs_dir}\"", "rm -rf \"#{OPTIONS.cache_file}\"", "rm -rf Makefile"])
-      lines << gen_target("clean-all", [], "rm -rf \"#{OPTIONS.output_dir}\"")
+      lines << gen_target("clean-all", ["dist-clean"], "rm -rf \"#{OPTIONS.output_dir}\"")
 
       try_write makefile_file, lines.join("\n")
     end

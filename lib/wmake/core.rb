@@ -2,19 +2,20 @@ require 'yaml'
 require 'wmake/platform'
 require 'wmake/algorithm'
 require 'wmake/project'
+require 'wmake/options'
 
 module WMake
   def self.load_generator gen_name
     require 'wmake/generator/' + gen_name
   end
-  def self.load_toolchains toolchains_name
+  def self.load_toolchain toolchains_name
     require 'wmake/toolchains/' + toolchains_name
   end
-  def self.init_wmake source_root, binary_root, wmake_file
-    CACHE[:source_root] = OPTIONS.source_root = File.expand_path(source_root)
-    CACHE[:binary_root] = OPTIONS.binary_root = File.expand_path(binary_root)
-    CACHE[:main_wmake] = OPTIONS.main_wmake = File.expand_path(wmake_file)
-    OPTIONS.cache_file = OPTIONS.binary_root + "/wmake.cache.yaml"
+  def self.init_wmake source_root, build_root, wmake_file
+    CACHE[:source_root] = File.expand_path(source_root)
+    CACHE[:build_root] = File.expand_path(build_root)
+    CACHE[:main_wmake] = File.expand_path(wmake_file)
+    OPTIONS.init
   end
   def self.load fpath
     PROJECT_LOADER.load fpath
@@ -59,19 +60,6 @@ module WMake
     end
   end
 
-  class Options
-    attr_accessor :source_root
-    attr_accessor :binary_root
-    attr_accessor :main_wmake
-    attr_accessor :cache_file
-    def projs_dir
-      binary_root + "/wmake.projs"
-    end
-    def output_dir
-      binary_root + "/wmake.output"
-    end
-  end
-  
   class ProjectLoader
     def initialize
       @loading_stack = []
@@ -108,7 +96,7 @@ module WMake
       when :intermediate
         File.expand_path(fpath.gsub("..", "__"), OPTIONS.projs_dir + "/" + project.name + "/intermediate")
       when :product
-        File.expand_path(fpath, OPTIONS.output_dir + "/")
+        File.expand_path(fpath, project.exec_output_dir)
       else
         raise "Unknown FileItem type: #{type}"
       end
@@ -192,7 +180,6 @@ module WMake
   end
 
   CACHE = Cache.new
-  OPTIONS = Options.new
   PROJECT_LOADER = ProjectLoader.new
   TOOLCHAIN = ToolChain.new
 end

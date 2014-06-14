@@ -28,7 +28,7 @@ module WMake
       @output_extention = ""            # output extention
     end
     def get_output_fpath item
-      return "bin/" + item.project.name + ".exe"
+      return PLATFORM.exec_prefix + item.project.name + PLATFORM.exec_suffix
     end
     def command_line job
       "link #{job.inputs.join ' '} /OUT:#{job.outputs.first}"
