@@ -1,6 +1,6 @@
 all: build
 
-build: 
+build: clean
 	gem build *.gemspec
 
 clean:
