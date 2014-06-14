@@ -3,45 +3,42 @@ require 'wmake/algorithm'
 require 'wmake/project'
 
 module WMake
-  module Core
-    def load_generator gen_name
-      require 'wmake/generator/' + gen_name
+  def self.load_generator gen_name
+    require 'wmake/generator/' + gen_name
+  end
+  def self.load_platform plat_name
+    require 'wmake/platform/' + plat_name
+  end
+  def self.load_toolchains toolchains_name
+    require 'wmake/toolchains/' + toolchains_name
+  end
+  def self.init_wmake source_root, binary_root, wmake_file
+    CACHE[:source_root] = OPTIONS.source_root = File.expand_path(source_root)
+    CACHE[:binary_root] = OPTIONS.binary_root = File.expand_path(binary_root)
+    CACHE[:main_wmake] = OPTIONS.main_wmake = File.expand_path(wmake_file)
+    OPTIONS.cache_file = OPTIONS.binary_root + "/wmake.cache.yaml"
+  end
+  def self.load fpath
+    PROJECT_LOADER.load fpath
+  end
+  def self.configure
+    PROJECTS.each do |name, proj|
+      proj.configure
     end
-    def load_platform plat_name
-      require 'wmake/platform/' + plat_name
-    end
-    def load_toolchains toolchains_name
-      require 'wmake/toolchains/' + toolchains_name
-    end
-    def init_wmake source_root, binary_root, wmake_file
-      CACHE[:source_root] = OPTIONS.source_root = File.expand_path(source_root)
-      CACHE[:binary_root] = OPTIONS.binary_root = File.expand_path(binary_root)
-      CACHE[:main_wmake] = OPTIONS.main_wmake = File.expand_path(wmake_file)
-      OPTIONS.cache_file = OPTIONS.binary_root + "/wmake.cache.yaml"
-    end
-    def load fpath
-      FRONT.load fpath
-    end
-    def configure
-      PROJECTS.each do |name, proj|
-        proj.configure
-      end
-    end
-    def gen
-      GENERATOR.gen
-    end
-    def save_cache
-      CACHE.save OPTIONS.cache_file
-    end
-
-    def help
-      puts "Usage: wmake <path_to_source_dir_or_binary_dir_or_wmake_file> [args...]"
-      exit 0
-    end
-    def die msg, code = 1
-      $stderr.puts msg
-      exit code
-    end
+  end
+  def self.generate
+    GENERATOR.generate
+  end
+  def self.save_cache
+    CACHE.save OPTIONS.cache_file
+  end
+  def self.help
+    puts "Usage: wmake <path_to_source_dir_or_binary_dir_or_wmake_file> [args...]"
+    exit 0
+  end
+  def self.die msg, code = 1
+    $stderr.puts msg
+    exit code
   end
   
   class Cache 
@@ -95,13 +92,22 @@ module WMake
   FileItem = Struct.new :project, :fpath, :type  # type => :source, :intermediate, :product
   class FileItem
     def source?
-      @type == :source
+      (self.type == :source)
+    end
+    def generated?
+      (self.type == :intermediate or self.type == :product?)
     end
     def intermediate?
-      @type == :intermediate
+      (self.type == :intermediate)
     end
     def product?
-      @type == :product?
+      (self.type == :product)
+    end
+    def inspect
+      "{FileItem: project => #{project.name}, fpath => #{fpath}, type => #{type}}"
+    end
+    def to_s
+      inspect
     end
   end
   
@@ -117,7 +123,7 @@ module WMake
       # You have to change follow variants in inherted class
       # or reimplement methods for advance
       @exts = []
-      @compiler_mode = :one_by_one      # :one_by_one, :all_to_one
+      @compiler_mode = :one_by_one      # :one_by_one, :all_to_one, :empty
       @output_extention = nil           # output extention
     end
     attr_accessor :exts
@@ -145,9 +151,12 @@ module WMake
           output = FileItem.new(inputs.first.project, get_output_fpath(inputs.first), :intermediate)
           jobs << Job.new(inputs.first.project, inputs, [output], self)
         end
+      elsif @compiler_mode == :empty
+        # do nothing
       else
         raise "Unknown compiler mode"
       end
+      jobs
     end
     def get_output_fpath item
       # default implement, you can reimplement it if necessary
@@ -164,11 +173,17 @@ module WMake
       raise "You have to reimplement this method"
     end
   end
+  
+  class ToolChain
+    def initialize
+      @compilers = []
+    end
+    attr_accessor :compilers
+  end
 
-  include Core
-  include Algorithm
   CACHE = Cache.new
   OPTIONS = Options.new
   PROJECT_LOADER = ProjectLoader.new
+  TOOLCHAIN = ToolChain.new
 end
 

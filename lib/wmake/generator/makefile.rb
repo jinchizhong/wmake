@@ -18,7 +18,7 @@ module WMake
     def touch fpath
       FileUtils.touch fpath
     end
-    def gen
+    def generate
       FileUtils.mkdir_p OPTIONS.projs_dir
 
       gen_pre_check
@@ -28,6 +28,33 @@ module WMake
       gen_main_makefile
       gen_root_makefile
     end
+    def format_targets targets
+      targets = [targets] unless targets.is_a? Array
+      targets.collect do |t|
+        if t.is_a? FileItem
+          if t.source?
+            File.expand_path(t.fpath, t.project.dir)
+          elsif t.intermediate?
+            File.expand_path(t.fpath.gsub("..", "__"), OPTIONS.projs_dir + "/" + t.project.name + "/intermediate")
+          elsif t.product?
+            File.expand_path(t.fpath, OPTIONS.output_dir + "/")
+          else
+            raise "Unknown FileItem type " + t.type.to_s
+          end
+        else
+          t
+        end
+      end.join " "
+    end
+    def gen_target outputs, refs, cmds = []
+      cmds = [cmds] unless cmds.is_a? Array
+      
+      lines = []
+      lines << format_targets(outputs) + ": " + format_targets(refs)
+      lines += cmds.collect { |cmd| "\t" + cmd }
+      lines << ""
+      lines
+    end
     def gen_pre_check
       prj_dir = OPTIONS.projs_dir + "/pre_check"
       stamp_file = prj_dir + "/timestamp"
@@ -35,52 +62,40 @@ module WMake
       FileUtils.mkdir_p prj_dir
 
       lines = []
-      lines << "all: #{escape stamp_file}" << ""
-      PROJECTS.each do |name, proj|
-        proj.pre_check_files.each do |f|
-          lines << "#{escape stamp_file}: #{escape f}"
+      lines << gen_target("all", stamp_file)
+      prechks = PROJECTS.values.collect do |prj| 
+        prj.pre_check_files.collect do |f|
+          File.expand_path f, prj.dir
         end
-      end
-      lines << "\tcd ../..; wmake ."
-      lines << ""
+      end.flatten
+      lines << gen_target(stamp_file, prechks, "cd ../../; wmake .")
+      
       try_write makefile_file, lines.join("\n")
-
       touch stamp_file
-    end
-    def get_file_depends fpath
-      CREF.get_refs fpath, []
-    end
-    def intermediate_filename str
-      "intermediate/" + str.gsub("..", "__")
-    end
-    def get_file_location proj, f
-      return f if f =~ /^\//
-      return proj.dir + "/" + f if proj.files.include?(f)
-      OPTIONS.projs_dir + "/" + proj.name + "/" + intermediate_filename(f)
     end
     def gen_project proj
       src_dir = proj.dir
       bin_dir = OPTIONS.projs_dir + "/" + proj.name
       makefile_file = bin_dir + "/Makefile"
-      products = proj.products
       FileUtils.mkdir_p bin_dir
 
       lines = []
-      steps = WMake.gen_steps proj
-      lines << ".PHONY: all"
-      lines << ""
-      lines << "all: #{proj.name}"
-      lines << ""
-      lines << "#{proj.name}: #{products.join ' '}"
-      lines << ""
-      steps.each do |step|
-        next if step.from.empty? or step.to.empty?
-        lines << "#{step.to.collect{|x| get_file_location(proj, x)}.join ' '}: #{step.from.collect{|x| get_file_location(proj, x)}.join ' '}"
-        lines << "\t#{step.compiler.command_line proj, step}"
-        lines << ""
+      jobs = WMake.gen_jobs proj
+      products = jobs.collect {|job| job.outputs.select{|item| item.product?}}.flatten
+      lines << gen_target(".PHONY", ["all", proj.name])
+      lines << gen_target("all", proj.name)
+      lines << gen_target(proj.name, products)
+      jobs.each do |job|
+        next if job.inputs.empty? or job.outputs.empty?
+        lines << gen_target(job.outputs, job.inputs, "test")
       end
 
       try_write makefile_file, lines.join("\n")
+    end
+    def all_product_fileitems proj
+      proj.products.collect do |product|
+        FileItem.new proj, product, :product
+      end
     end
     def gen_main_makefile
       makefile_file = OPTIONS.projs_dir + "/Makefile"
@@ -88,26 +103,15 @@ module WMake
       all_prjs = PROJECTS.keys
       
       lines = []
-      lines << "all: #{def_prjs.join ' '}"
-      lines << ""
-      lines << ".PHONY: #{all_prjs.collect{|x| "#{x} #{x}/clean #{x}/build"}.join ' '}"
-      lines << ""
-      lines << "clean: #{def_prjs.collect{|x| x + "/clean"}.join ' '}"
-      lines << ""
+      lines << gen_target(".PHONY", ["all", "clean"] + all_prjs.collect{|x| [x, x + "/clean",  x + "/build"]}.flatten)
+      lines << gen_target("all", def_prjs)
+      lines << gen_target("clean", def_prjs.collect{|x| x + "/clean"})
       PROJECTS.each_value do |prj|
-        lines << "#{prj.name}: #{prj.depends.join ' '}" unless prj.depends.empty?
-        lines << "#{prj.name}: #{prj.products.join ' '}"
-        lines << ""
-        prj.products.each do |product|
-          lines << "#{product}: #{prj.name}/build"
-          lines << ""
-        end
-        lines << "#{prj.name}/build:"
-        lines << "\tcd #{prj.name} && make"
-        lines << ""
-        lines << "#{prj.name}/clean: #{prj.depends.collect{|x| x + "/clean"}.join ' '}"
-        lines << "\tcd #{prj.name} && make clean"
-        lines << ""
+        products = all_product_fileitems prj
+        lines << gen_target(prj.name, prj.depends + products)
+        lines << gen_target(products, prj.name + "/build")
+        lines << gen_target(prj.name + "/build", [], "cd #{prj.name} && make")
+        lines << gen_target(prj.name + "/clean", [], "cd #{prj.name} && make clean")
       end
 
       try_write makefile_file, lines.join("\n")
@@ -116,25 +120,14 @@ module WMake
       makefile_file = OPTIONS.binary_root + "/Makefile"
       prjs_dir = OPTIONS.projs_dir
 
-      targets = ["all", "clean"]
-      PROJECTS.each_key do |prj|
-        targets << prj << "#{prj}/clean"
-      end
+      targets = ["all", "clean"] + PROJECTS.keys.collect{|x| [x, x + "/clean"]}.flatten
       
       lines = []
       targets.each do |target|
-        lines << "#{target}: "
-        lines << "\tcd \"#{prjs_dir}\" && make #{target}"
-        lines << ""
+        lines << gen_target(target, [], "cd \"#{prjs_dir}\" && make #{target}")
       end
-      lines << "dist-clean: "
-      lines << "\trm -rf \"#{OPTIONS.projs_dir}\""
-      lines << "\trm -rf \"#{OPTIONS.cache_file}\""
-      lines << "\trm -rf Makefile"
-      lines << ""
-      lines << "clean-all: dist-clean"
-      lines << "\trm -rf \"#{OPTIONS.output_dir}\""
-      lines << ""
+      lines << gen_target("dist-clean", [], ["rm -rf \"#{OPTIONS.projs_dir}\"", "rm -rf \"#{OPTIONS.cache_file}\"", "rm -rf Makefile"])
+      lines << gen_target("clean-all", [], "rm -rf \"#{OPTIONS.output_dir}\"")
 
       try_write makefile_file, lines.join("\n")
     end

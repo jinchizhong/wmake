@@ -9,10 +9,11 @@ module WMake
       @name = name
       @type = type
       @block = block
-      @wmake = FRONT.loading_stack.last
+      @wmake = PROJECT_LOADER.loading_stack.last
       @files = []
       @depends = []
       @exclude_by_default = false
+      @compilers = TOOLCHAIN.compilers.dup
     end
     attr_reader :name
     attr_reader :type
@@ -29,10 +30,13 @@ module WMake
       [@wmake]
     end
     def products
-      PLATFORM.products self
+      ["bin/" + name]
     end
     def dir
       File.dirname @wmake
+    end
+    def compilers
+      @compilers
     end
   end
 end

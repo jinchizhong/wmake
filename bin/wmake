@@ -44,6 +44,6 @@ WMake.init_wmake source_root, binary_root, wmake_file
 WMake.load wmake_file
 WMake.configure
 
-WMake.gen
+WMake.generate
 
 WMake.save_cache
