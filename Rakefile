@@ -27,9 +27,9 @@ task :rununit do
   if Gem.win_platform? 
     bin_path.gsub! "/", "\\"
     ENV["PATH"] = bin_path + ";" + ENV["PATH"]
-    ENV["RUBYLIB"] = lib_path
-    system("#{Gem.ruby} #{dir}/test/run_all_test.rb")
   else
-    raise "TODO"
+    ENV["PATH"] = bin_path + ":" + ENV["PATH"]
   end
+  ENV["RUBYLIB"] = lib_path
+  system("#{Gem.ruby} #{dir}/test/run_all_test.rb")
 end

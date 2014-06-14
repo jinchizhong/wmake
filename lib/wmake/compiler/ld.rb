@@ -8,7 +8,7 @@ module WMake
       @output_extention = ""            # output extention
     end
     def get_output_fpath item
-      return "bin/" + item.project.name
+      return PLATFORM.exec_prefix + item.project.name + PLATFORM.exec_suffix
     end
     def command_line job
       "g++ #{job.inputs.join ' '} -o #{job.outputs.first}"

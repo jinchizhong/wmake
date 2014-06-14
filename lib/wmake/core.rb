@@ -81,7 +81,7 @@ module WMake
       (self.type == :source)
     end
     def generated?
-      (self.type == :intermediate or self.type == :product?)
+      (self.type == :intermediate or self.type == :product)
     end
     def intermediate?
       (self.type == :intermediate)

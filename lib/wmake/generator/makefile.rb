@@ -72,20 +72,14 @@ module WMake
       FileUtils.mkdir_p bin_dir
 
       jobs = WMake.gen_jobs proj
-      products = []
-      dirs_need_to_gen = []
-      products = jobs.collect {|job| job.outputs.select{|item| item.product?}}.flatten
-      jobs.each do |job|
-        job.outputs.each do |item|
-          products << item if item.product?
-          dirs_need_to_gen << File.dirname(item.absolute) if item.type != :source
-        end
-      end
-      dirs_need_to_gen.uniq!
+      generated = jobs.collect {|job| job.outputs.select{|item| item.generated?}}.flatten
+      products = generated.select{|item| item.product?}
+      dirs_need_to_gen = generated.collect{|item| File.dirname(item.absolute)}.uniq
 
       lines = []
-      lines << gen_target(".PHONY", ["all", proj.name])
+      lines << gen_target(".PHONY", ["all", "clean", proj.name])
       lines << gen_target("all", proj.name)
+      lines << gen_target("clean", [], generated.collect{|item| "rm -rf #{item.absolute}"})
       dirs_need_to_gen.each do |dir|
         lines << gen_target(dir, [], "mkdir -p \"#{dir}\"")
       end
