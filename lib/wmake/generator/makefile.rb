@@ -77,8 +77,8 @@ module WMake
       dirs_need_to_gen = generated.collect{|item| File.dirname(item.absolute)}.uniq
 
       lines = []
-      lines << gen_target(".PHONY", ["all", "clean", proj.name])
       lines << gen_target("all", proj.name)
+      lines << gen_target(".PHONY", ["all", "clean", proj.name])
       lines << gen_target("clean", [], generated.collect{|item| "rm -rf #{item.absolute}"})
       dirs_need_to_gen.each do |dir|
         lines << gen_target(dir, [], "mkdir -p \"#{dir}\"")
