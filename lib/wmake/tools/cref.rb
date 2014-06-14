@@ -1,3 +1,5 @@
+require 'wmake/platform'
+
 module WMake
   class CRef
     def initialize
@@ -52,7 +54,7 @@ module WMake
     end
     def get_refs fpath, inc_dirs
       raise "test" if $cnt == 100
-      raise "This function need absolute path!" if fpath !~ /^\//
+      raise "This function need absolute path!" unless PLATFORM.is_absolute_path fpath
       if @result_cache[[fpath, inc_dirs]]
         return @result_cache[[fpath, inc_dirs]]
       end

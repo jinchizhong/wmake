@@ -17,7 +17,7 @@ task :install => :build do
 end
 
 task :uninstall do 
-  `gem uninstall wmake`
+  system("gem uninstall wmake")
 end
 
 task :rununit do

@@ -1,13 +1,11 @@
 require 'yaml'
+require 'wmake/platform'
 require 'wmake/algorithm'
 require 'wmake/project'
 
 module WMake
   def self.load_generator gen_name
     require 'wmake/generator/' + gen_name
-  end
-  def self.load_platform plat_name
-    require 'wmake/platform/' + plat_name
   end
   def self.load_toolchains toolchains_name
     require 'wmake/toolchains/' + toolchains_name
