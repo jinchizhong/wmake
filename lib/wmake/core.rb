@@ -1,59 +1,81 @@
+require 'yaml'
+require 'wmake/core'
+require 'wmake/front'
+require 'wmake/project'
+
 module WMake
-  def self.fill_logic_map logic_map, step
-    dirt = false
-    step.from.each do |a|
-      step.to.each do |b|
-        if not logic_map[[a, b]]
-          logic_map[[a, b]] = step.compiler
-          dirt = true
-        elsif logic_map[[a, b]] != step.compiler
-          die "Compiler conflict!"
-        end
+  class Cache 
+    def initialize 
+      @cache = {}
+    end
+    def load fpath
+      @cache = YAML.load_file fpath
+    end
+    def save fpath
+      open(fpath, "w") do |fd|
+        fd.write @cache.to_yaml
       end
     end
-    return dirt
+    def [] k
+      @cache[k]
+    end
+    def []= k, v
+      @cache[k] = v
+    end
   end
-  def self.gen_steps proj
-    remain = proj.files
-    COMPILERS.each do |compiler|
-      remain = remain - compiler.filter(proj, proj.files)
-    end
-    die "WMake don't known how to process follow files: #{remain}" unless remain.empty?
+  CACHE = Cache.new
 
-    logic_map = {}  # [from, to] => compiler
-    all_files = proj.files
-    #p all_files
-    dirt = true
-    30.times do
-      dirt = false
-      COMPILERS.each do |compiler|
-        #p all_files
-        filtered = compiler.filter(proj, all_files)
-        #p filtered
-        compiler.steps(proj, filtered).each do |step|
-          p step
-          dirt ||= fill_logic_map logic_map, step
-        end
-      end
-      break if not dirt
+  class Options
+    attr_accessor :source_root
+    attr_accessor :binary_root
+    attr_accessor :main_wmake
+    attr_accessor :cache_file
+    def projs_dir
+      binary_root + "/wmake.projs"
+    end
+    def output_dir
+      binary_root + "/wmake.output"
+    end
+  end
+  OPTIONS = Options.new
 
-      logic_map.each do |x, c|
-        all_files << x[0] << x[1]
-      end
-      all_files.uniq!
+  def self.load_generator gen_name
+    require 'wmake/generator/' + gen_name
+  end
+  def self.load_platform plat_name
+    require 'wmake/platform/' + plat_name
+  end
+  def self.load_toolchains toolchains_name
+    require 'wmake/toolchains/' + toolchains_name
+  end
+  def self.init_wmake source_root, binary_root, wmake_file
+    CACHE[:source_root] = OPTIONS.source_root = File.expand_path(source_root)
+    CACHE[:binary_root] = OPTIONS.binary_root = File.expand_path(binary_root)
+    CACHE[:main_wmake] = OPTIONS.main_wmake = File.expand_path(wmake_file)
+    OPTIONS.cache_file = OPTIONS.binary_root + "/wmake.cache.yaml"
+  end
+  def self.load fpath
+    FRONT.load fpath
+  end
+  def self.configure
+    PROJECTS.each do |name, proj|
+      proj.configure
     end
-    die "Compiler dead lock!" if dirt
-    
-    proj.products.each do |product|
-      if not all_files.include? product
-        die "Can not generate #{product}!"
-      end
-    end
+  end
+  def self.gen
+    GENERATOR.gen
+  end
+  def self.save_cache
+    CACHE.save OPTIONS.cache_file
+  end
 
-    steps = []
-    COMPILERS.each do |compiler|
-      steps += compiler.steps(proj, compiler.filter(proj, all_files))
-    end
-    return steps
+  def self.help
+    puts "Usage: wmake <path_to_source_dir_or_binary_dir_or_wmake_file> [args...]"
+    exit 0
+  end
+  def self.die msg, code = 1
+    $stderr.puts msg
+    exit code
   end
 end
+
