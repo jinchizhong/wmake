@@ -1,4 +1,8 @@
 require 'test/unit'
+require 'wmake/find'
+require 'wmake/platform'
+
+include WMake
 
 class TestHello < Test::Unit::TestCase
   def assert_directory path
@@ -19,6 +23,14 @@ class TestHello < Test::Unit::TestCase
       raise "run command error: #{cmd}"
     end
   end
+  def make target = nil
+    if PLATFORM.windows?
+      makepath = FIND["nmake"]
+    else
+      makepath = FIND["make"]
+    end
+    run_cmd "\"#{makepath}\" #{target}"
+  end
   def test
     Dir.chdir(File.dirname __FILE__)
 
@@ -27,21 +39,26 @@ class TestHello < Test::Unit::TestCase
     assert_file "Makefile"
     assert_file "wmake.cache.yaml"
 
-    run_cmd "make"
+    make
     assert_directory "wmake.output"
-    assert_file "wmake.output/bin/hello"
-    assert_equal `./wmake.output/bin/hello`, "Hello world!\n"
+    if PLATFORM.windows?
+      assert_file "wmake.output/hello.exe"
+      assert_equal `wmake.output/hello.exe`, "Hello world!\n"
+    else
+      assert_file "wmake.output/bin/hello"
+      assert_equal `./wmake.output/bin/hello`, "Hello world!\n"
+    end
 
-    run_cmd "make clean"
+    make "clean"
     assert_no_file "wmake.output/bin/hello"
 
-    run_cmd "make dist-clean"
+    make "dist-clean"
     assert_no_directory "wmake.projs"
     assert_no_file "wmake.cache.yaml"
     assert_no_file "Makefile"
 
     run_cmd "wmake ."
-    run_cmd "make clean-all"
+    make "clean-all"
     assert_no_directory "wmake.output"
   end
 end

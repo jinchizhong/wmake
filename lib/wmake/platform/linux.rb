@@ -1,5 +1,8 @@
 module WMake
   class PlatformLinux
+    def windows?
+      false
+    end
     def is_absolute_path fpath
       !!(fpath =~ /^\//)
     end

@@ -3,6 +3,7 @@ require 'wmake/platform'
 require 'wmake/algorithm'
 require 'wmake/project'
 require 'wmake/options'
+require 'wmake/find'
 
 module WMake
   def self.load_generator gen_name
@@ -38,6 +39,12 @@ module WMake
   def self.die msg, code = 1
     $stderr.puts msg
     exit code
+  end
+  def self.find name
+    if not CACHE['find/' + name]
+      CACHE['find/' + name] = FIND[name]
+    end
+    CACHE['find/' + name]
   end
   
   class Cache 

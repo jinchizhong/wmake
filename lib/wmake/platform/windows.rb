@@ -1,5 +1,8 @@
 module WMake
   class PlatformWindows
+    def windows?
+      true
+    end
     def is_absolute_path fpath
       !!(fpath =~ /^[a-zA-Z]:[\/\\]/)
     end
